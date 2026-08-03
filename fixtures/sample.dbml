@@ -1,0 +1,30 @@
+Table subscriptions {
+  id uuid [pk, note: 'UUIDv7']
+  user_id uuid [not null, note: 'FK -> users.id (the seeker)']
+  stripe_subscription_id text [unique]
+  plan text
+  status text
+  current_period_end timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+
+  Note: '[DESIGNED] (F6+, DORMANT at launch) Seeker Stripe Billing subscription. Entitlement is a FUNCTION not a table: can_message(seeker) = !PAYWALL_ENABLED || has_active_subscription(seeker) — hence no entitlements table exists. Flag lives in app_config.'
+}
+
+Table boosts {
+  id uuid [pk, note: 'UUIDv7']
+  caregiver_id uuid [not null, note: 'FK -> caregiver_profiles.user_id']
+  starts_at timestamptz
+  ends_at timestamptz
+
+  Note: '[DESIGNED] (dark seam, v1.1) Caregiver-paid featured placement. Adds one ranking term when active; table pre-wired, feature dark at MVP.'
+}
+
+Ref: caregiver_profiles.organization_id > organization.id
+
+TableGroup Billing {
+  subscriptions
+  boosts
+  reviews
+  organization
+}

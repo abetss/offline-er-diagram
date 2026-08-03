@@ -1,0 +1,64 @@
+{
+  "tables": [
+    {
+      "name": "users",
+      "note": "All humans in the system.",
+      "columns": [
+        { "name": "id", "type": "uuid", "pk": true, "notNull": true, "unique": false, "note": "UUIDv7", "isFk": false },
+        { "name": "email", "type": "varchar(200)", "pk": false, "notNull": true, "unique": true, "note": null, "isFk": false },
+        { "name": "display_name", "type": "text", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false },
+        { "name": "created_at", "type": "timestamptz", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false }
+      ]
+    },
+    {
+      "name": "caregiver_profiles",
+      "note": null,
+      "columns": [
+        { "name": "user_id", "type": "uuid", "pk": true, "notNull": true, "unique": false, "note": null, "isFk": true },
+        { "name": "organization_id", "type": "uuid", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": true },
+        { "name": "bio", "type": "text", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false },
+        { "name": "hourly_rate", "type": "numeric(10,2)", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false },
+        { "name": "location", "type": "geography(Point,4326)", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false }
+      ]
+    },
+    {
+      "name": "organization",
+      "note": null,
+      "columns": [
+        { "name": "id", "type": "uuid", "pk": true, "notNull": true, "unique": false, "note": null, "isFk": false },
+        { "name": "name", "type": "text", "pk": false, "notNull": true, "unique": false, "note": null, "isFk": false }
+      ]
+    },
+    {
+      "name": "subscriptions",
+      "note": null,
+      "columns": [
+        { "name": "id", "type": "uuid", "pk": true, "notNull": true, "unique": false, "note": null, "isFk": false },
+        { "name": "user_id", "type": "uuid", "pk": false, "notNull": true, "unique": false, "note": "FK -> users.id (the seeker)", "isFk": true },
+        { "name": "status", "type": "text", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false },
+        { "name": "current_period_end", "type": "timestamptz", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false }
+      ]
+    },
+    {
+      "name": "reviews",
+      "note": null,
+      "columns": [
+        { "name": "id", "type": "uuid", "pk": true, "notNull": true, "unique": false, "note": null, "isFk": false },
+        { "name": "author_id", "type": "uuid", "pk": false, "notNull": true, "unique": false, "note": "FK -> users.id", "isFk": true },
+        { "name": "caregiver_id", "type": "uuid", "pk": false, "notNull": true, "unique": false, "note": null, "isFk": true },
+        { "name": "rating", "type": "int", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false },
+        { "name": "body", "type": "text", "pk": false, "notNull": false, "unique": false, "note": "Free-text review body", "isFk": false }
+      ]
+    }
+  ],
+  "refs": [
+    { "fromTable": "caregiver_profiles", "fromColumn": "user_id", "toTable": "users", "toColumn": "id", "relation": "-", "note": null, "source": "inline" },
+    { "fromTable": "subscriptions", "fromColumn": "user_id", "toTable": "users", "toColumn": "id", "relation": ">", "note": "(the seeker)", "source": "from-note" },
+    { "fromTable": "reviews", "fromColumn": "author_id", "toTable": "users", "toColumn": "id", "relation": ">", "note": null, "source": "from-note" },
+    { "fromTable": "caregiver_profiles", "fromColumn": "organization_id", "toTable": "organization", "toColumn": "id", "relation": ">", "note": "employer", "source": "explicit" },
+    { "fromTable": "reviews", "fromColumn": "caregiver_id", "toTable": "caregiver_profiles", "toColumn": "user_id", "relation": ">", "note": null, "source": "explicit" }
+  ],
+  "groups": [
+    { "name": "Billing", "tables": ["subscriptions", "reviews"] }
+  ]
+}

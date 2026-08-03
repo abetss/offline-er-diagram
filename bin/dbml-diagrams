@@ -1,0 +1,3 @@
+#!/bin/sh
+# Back-compat alias for `dbml open` — open the app on a .dbml file. Self-locating.
+exec "$(cd "$(dirname "$0")" && pwd)/dbml" open "$@"

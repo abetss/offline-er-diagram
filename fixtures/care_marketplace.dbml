@@ -1,0 +1,428 @@
+// =============================================================================
+// Care Marketplace — Database Schema (DBML for dbdiagram.io)
+// =============================================================================
+//
+// WHAT THIS IS
+//   The TARGET data model for the care-marketplace product — NOT a dump of the
+//   current live DB. It merges two sources of truth:
+//     1. The BUILT tables that exist in Postgres today (better-auth, app_config,
+//        geo_smoke) — hand-verified against apps/api/src/platform/db/schema/*.ts
+//        and apps/api/drizzle/*.sql.
+//     2. The DESIGNED-but-not-yet-built domain tables (profiles, credentials,
+//        posts, messaging, billing seams) taken from docs/02-architecture.md §5-6
+//        and reconciled with docs/planning-brief.md §4 (the AD register) and
+//        docs/01-scope.md.
+//
+// BUILT vs DESIGNED
+//   Every Table's Note starts with [BUILT] or [DESIGNED]. BUILT tables reflect the
+//   real DDL. DESIGNED tables reflect the committed design; column names/types are
+//   the intended shape (F6+ epics), stack-agnostic. The stale 02-architecture.md
+//   named Go/River/Resend/Mapbox — IGNORED here; the register wins:
+//   TS/Bun/Hono/Drizzle/pg-boss, Postmark, Geoapify/MapLibre, media on R2/MinIO.
+//
+// CONVENTIONS ENCODED
+//   - ids: UUIDv7 (dbml `uuid`) for domain tables; better-auth tables use `text`
+//     ids (that vendor's convention) — kept as text.
+//   - money: integer cents + `char(3)` currency; timestamps: timestamptz.
+//   - PostGIS: geography(Point,4326) (GiST-indexed); FTS: tsvector GENERATED
+//     (GIN-indexed); availability/schedule: 28-bit int masks; app_config value:
+//     jsonb; embedding: vector(1024) RESERVED / dormant.
+//   - plural table names; CHECK constraints inlined as column notes where the
+//     design states an enum domain.
+//   - Entitlement is a FUNCTION, not a table — there is deliberately no
+//     `entitlements` table (see subscriptions Note).
+//
+// dbdiagram note: dbdiagram has no native geography/tsvector/vector types, so those
+// columns are typed with the literal SQL string; it renders them fine as labels.
+// =============================================================================
+
+
+// ============================== IDENTITY =====================================
+
+Table users {
+  id text [pk, note: 'better-auth user id (text, not UUID — vendor convention)']
+  name text [not null, note: 'NOT NULL but magic-link/Google-first users get name="" — consumers treat "" as "not set" and prompt at onboarding']
+  email text [not null, unique]
+  email_verified boolean [not null, default: false]
+  image text
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  role text [default: 'user', note: "CHECK role IN ('user','admin'); input:false blocks signup from setting it — TR3 flips to admin"]
+
+  Note: '[BUILT] better-auth core user (AD-008). Lives in OUR Postgres via the Drizzle adapter so profiles/threads/subscriptions join directly and a ban is one DELETE FROM sessions.'
+}
+
+Table sessions {
+  id text [pk]
+  expires_at timestamptz [not null]
+  token text [not null, unique]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+  ip_address text
+  user_agent text
+  user_id text [not null, note: 'FK -> users.id, ON DELETE CASCADE']
+
+  indexes {
+    user_id [name: 'sessions_userId_idx']
+  }
+  Note: '[BUILT] better-auth cookie DB session (AD-008). Deleting a user cascades away their sessions; instant ban = delete the session rows.'
+}
+
+Table accounts {
+  id text [pk]
+  account_id text [not null]
+  provider_id text [not null, note: '"credential" for password accounts, else the OAuth provider (e.g. google)']
+  user_id text [not null, note: 'FK -> users.id, ON DELETE CASCADE']
+  access_token text
+  refresh_token text
+  id_token text
+  access_token_expires_at timestamptz
+  refresh_token_expires_at timestamptz
+  scope text
+  password text [note: 'scrypt hash for password accounts; null for OAuth accounts']
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  indexes {
+    user_id [name: 'accounts_userId_idx']
+  }
+  Note: '[BUILT] better-auth credential/OAuth linkage (AD-008). One row per auth method bound to a user.'
+}
+
+Table verifications {
+  id text [pk]
+  identifier text [not null]
+  value text [not null]
+  expires_at timestamptz [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  indexes {
+    identifier [name: 'verifications_identifier_idx']
+  }
+  Note: '[BUILT] better-auth short-lived token store (AD-008) — magic-link / email-verify tokens. NOT the trust "verifications" (identity/background) concept from the design doc.'
+}
+
+
+// ============================== PROFILES =====================================
+
+Table caregiver_profiles {
+  user_id uuid [pk, note: 'PK is also FK -> users.id (1:1 profile per user)']
+  display_name text
+  slug text [unique, note: 'public URL: /caregivers/{slug}']
+  headline text
+  bio text
+  years_experience int
+  languages "text[]" [note: 'GIN indexed for filtering']
+  rate_min_cents int [note: 'money = integer cents']
+  rate_max_cents int
+  currency "char(3)"
+  location "geography(Point,4326)" [note: 'PRECISE, PRIVATE — search only, GiST indexed; never leaves the API (privacy invariant)']
+  public_location "geography(Point,4326)" [note: 'snapped/jittered ~1km — the ONLY location ever returned publicly']
+  location_label text [note: 'coarse human label, e.g. "Etobicoke, ON"']
+  country "char(2)"
+  region text
+  city text
+  service_radius_km int [note: 'caregiver-declared radius governs the two-way ST_DWithin match']
+  availability_mask int [note: '28-bit mask: bit = day(0=Mon..6=Sun)*4 + block(0=morn 6-12,1=aft 12-17,2=eve 17-22,3=overnight 22-6). Overlap: mask & needed <> 0']
+  available_from date
+  hours_per_week_max int
+  engagement_flags jsonb [note: '{full_time, part_time, live_in, overnight}']
+  attributes jsonb [note: '{has_car, will_drive, pets_ok, non_smoker,...} — GIN indexed']
+  status text [note: "CHECK status IN ('draft','pending_review','live','paused','suspended')"]
+  organization_id uuid [note: 'OPTIONAL FK -> organization.id — dark agency seam; null for individual caregivers']
+  completeness int [note: '0-100, computed']
+  trust_score numeric [note: 'RANKING INPUT ONLY, NEVER DISPLAYED (venue posture, 01-scope §7)']
+  video_asset_id uuid [note: 'optional ref to a media asset (media_assets not modelled here — F6+ media module)']
+  search_tsv "tsvector" [note: 'GENERATED ALWAYS (headline+bio+skills), GIN indexed — expression owned by a --custom migration']
+  embedding "vector(1024)" [note: 'RESERVED / DORMANT until semantic matching (v1.2); pgvector installed but unused']
+  published_at timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    location [type: gist, name: 'caregiver_location_gist']
+    public_location [type: gist, name: 'caregiver_public_location_gist']
+    search_tsv [type: gin, name: 'caregiver_search_tsv_gin']
+    (status, city) [name: 'caregiver_status_city_idx']
+  }
+  Note: '[DESIGNED] (F6+) The caregiver trust asset — the supply-side profile. 1:1 with users. Precise vs public geography split and the never-displayed trust_score are load-bearing.'
+}
+
+Table seeker_profiles {
+  user_id uuid [pk, note: 'PK is also FK -> users.id (1:1 profile per user)']
+  display_name text
+  location "geography(Point,4326)" [note: 'approximate; used to anchor caregiver search']
+  location_label text
+  country "char(2)"
+  region text
+  city text
+  created_at timestamptz
+
+  Note: '[DESIGNED] (F6+) Lightweight demand-side profile. A single user may hold BOTH a caregiver and a seeker profile (dual role, 01-scope §2).'
+}
+
+
+// =============================== TRUST =======================================
+
+Table credentials {
+  id uuid [pk, note: 'UUIDv7']
+  caregiver_id uuid [not null, note: 'FK -> caregiver_profiles.user_id']
+  type text [note: "'psw_cert','cna_cert','cpr_first_aid','police_check','vulnerable_sector','drivers_licence','other'"]
+  title text
+  issuer text
+  issued_on date
+  expires_on date
+  document_asset_id uuid [note: 'ref to private-bucket doc (media module, F6+)']
+  ai_extraction jsonb [note: 'raw structured extraction + confidence + name-match result (Mastra vision workflow)']
+  review_status text [note: "CHECK review_status IN ('ai_approved','held','rejected')"]
+  badge_visible boolean [default: false, note: 'DISPLAY never CERTIFY — badge says "document on file", platform never asserts qualification (01-scope §7)']
+  created_at timestamptz
+  updated_at timestamptz
+
+  Note: '[DESIGNED] (F6+) Uploaded caregiver documents -> AI extraction -> "document on file" badge or held queue. The platform displays, never certifies.'
+}
+
+
+// =============================== POSTS =======================================
+
+Table care_need_posts {
+  id uuid [pk, note: 'UUIDv7']
+  seeker_id uuid [not null, note: 'FK -> seeker_profiles.user_id']
+  category_id uuid [note: 'ref to seeded taxonomy (service_categories not modelled here)']
+  title text
+  description text [note: 'AI nudges against health-detail oversharing']
+  care_recipient jsonb [note: '{relationship, age_band} — NOTHING medical/structured-health (venue posture)']
+  location "geography(Point,4326)" [note: 'precise, private']
+  public_location "geography(Point,4326)" [note: 'snapped/jittered for display']
+  location_label text
+  country "char(2)"
+  region text
+  city text
+  schedule_mask int [note: 'same 28-bit grid as caregiver availability_mask (AD-017)']
+  hours_per_week_range int [note: 'int4range in DDL; dbml has no range type']
+  rate_min_cents int
+  rate_max_cents int
+  currency "char(3)"
+  start_date date
+  duration_type text [note: "'ongoing' | 'short_term' | 'one_time'"]
+  status text [note: "CHECK status IN ('draft','live','filled','expired','removed')"]
+  moderation_status text
+  search_tsv "tsvector" [note: 'GENERATED, GIN indexed — same machinery powers caregiver->post search']
+  expires_at timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    location [type: gist, name: 'post_location_gist']
+    search_tsv [type: gin, name: 'post_search_tsv_gin']
+  }
+  Note: '[DESIGNED] (F6+) A seeker care-need post. Reuses the geo + 28-bit mask + tsvector search machinery; caregivers browse/respond, opening a thread.'
+}
+
+
+// ============================= MESSAGING =====================================
+
+Table threads {
+  id uuid [pk, note: 'UUIDv7']
+  seeker_id uuid [not null, note: 'FK -> seeker_profiles.user_id']
+  caregiver_id uuid [not null, note: 'FK -> caregiver_profiles.user_id']
+  post_id uuid [note: 'OPTIONAL FK -> care_need_posts.id (thread may be anchored to a post)']
+  initiated_by text [note: "CHECK initiated_by IN ('seeker','caregiver')"]
+  status text [note: "CHECK status IN ('active','archived','blocked')"]
+  last_message_at timestamptz
+  created_at timestamptz
+
+  indexes {
+    (seeker_id, caregiver_id) [unique, name: 'threads_seeker_caregiver_unique']
+  }
+  Note: '[DESIGNED] (F6+) One thread per (seeker, caregiver) pair, optionally anchored to a post. UNIQUE(seeker_id, caregiver_id). In-app chat is the only contact channel.'
+}
+
+Table messages {
+  id uuid [pk, note: 'UUIDv7']
+  thread_id uuid [not null, note: 'FK -> threads.id']
+  sender_id uuid [not null, note: 'FK -> users.id (sender)']
+  body text
+  moderation_status text [note: 'first 5 messages per thread pass through AI scam/solicitation screening']
+  created_at timestamptz
+  read_at timestamptz
+
+  indexes {
+    thread_id [name: 'messages_thread_idx']
+  }
+  Note: '[DESIGNED] (F6+) A chat message. Rows are the source of truth; SSE + LISTEN/NOTIFY are freshness hints (AD-012). Redacted on sender account deletion (PIPEDA).'
+}
+
+
+// ============================== BILLING ======================================
+
+Table subscriptions {
+  id uuid [pk, note: 'UUIDv7']
+  user_id uuid [not null, note: 'FK -> users.id (the seeker)']
+  stripe_subscription_id text [unique]
+  plan text
+  status text
+  current_period_end timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+
+  Note: '[DESIGNED] (F6+, DORMANT at launch) Seeker Stripe Billing subscription. Entitlement is a FUNCTION not a table: can_message(seeker) = !PAYWALL_ENABLED || has_active_subscription(seeker) — hence no entitlements table exists. Flag lives in app_config.'
+}
+
+Table boosts {
+  id uuid [pk, note: 'UUIDv7']
+  caregiver_id uuid [not null, note: 'FK -> caregiver_profiles.user_id']
+  starts_at timestamptz
+  ends_at timestamptz
+
+  Note: '[DESIGNED] (dark seam, v1.1) Caregiver-paid featured placement. Adds one ranking term when active; table pre-wired, feature dark at MVP.'
+}
+
+
+// =============================== REVIEWS =====================================
+
+Table reviews {
+  id uuid [pk, note: 'UUIDv7']
+  caregiver_id uuid [not null, note: 'FK -> caregiver_profiles.user_id']
+  seeker_id uuid [not null, note: 'FK -> seeker_profiles.user_id']
+  thread_id uuid [not null, note: 'FK -> threads.id — a review requires a real prior conversation']
+  rating int [note: 'CHECK rating BETWEEN 1 AND 5']
+  body text
+  status text
+  created_at timestamptz
+
+  indexes {
+    (caregiver_id, seeker_id) [unique, name: 'reviews_caregiver_seeker_unique']
+  }
+  Note: '[DESIGNED] (dark seam, v1.1) Ships at MVP but stays dark behind REVIEWS_ENABLED. Gated on a real thread (no drive-by anonymous reviews). UNIQUE(caregiver_id, seeker_id).'
+}
+
+
+// ============================ ORGANIZATION ===================================
+
+Table organization {
+  id uuid [pk, note: 'UUIDv7']
+  name text
+  slug text [unique]
+  created_at timestamptz
+
+  Note: '[DESIGNED] (dark seam, future — agencies) An agency owning multiple caregiver profiles. Additive-migration seam only; individual accounts are the MVP. Link modelled via caregiver_profiles.organization_id (see Ref).'
+}
+
+
+// ================================ CONFIG =====================================
+
+Table app_config {
+  key text [pk]
+  value jsonb [not null, note: 'typed via platform/flags registry; holds PAYWALL_ENABLED etc.']
+  updated_at timestamptz [not null, default: `now()`]
+
+  Note: '[BUILT] Homegrown key/value store for revenue/product switches (AD-027) — no vendor on the money path. Read through platform/flags (typed + cached).'
+}
+
+Table app_config_audit {
+  id "bigint" [pk, note: 'GENERATED ALWAYS AS IDENTITY']
+  key text [not null]
+  old_value jsonb [note: 'null on INSERT']
+  new_value jsonb [note: 'null on DELETE']
+  changed_at timestamptz [not null, default: `now()`]
+
+  Note: '[BUILT] Append-only audit of every app_config change, written by an AFTER INSERT/UPDATE/DELETE trigger. A drizzle blind spot owned by the 0004 --custom migration (no FK to app_config — key is captured by value).'
+}
+
+
+// ============================== REFERENCE ====================================
+
+Table geo_smoke {
+  id uuid [pk, default: `gen_random_uuid()`]
+  label text [not null]
+  location "geography(Point,4326)" [not null, note: 'GiST indexed — the PostGIS pattern-setter']
+  search_text "tsvector" [note: 'GENERATED ALWAYS AS to_tsvector(english, label) STORED, GIN indexed (migration 0002)']
+
+  indexes {
+    location [type: gist, name: 'geo_smoke_location_gist']
+    search_text [type: gin, name: 'geo_smoke_search_text_gin']
+  }
+  Note: '[BUILT] Reference / smoke table — NOT product data. Permanent living proof of the F3 PostGIS + generated-tsvector pipeline; the pattern feature epics copy for their own geo/FTS tables.'
+}
+
+
+// =============================== RELATIONSHIPS ===============================
+
+// Identity
+Ref: sessions.user_id > users.id [delete: cascade]
+Ref: accounts.user_id > users.id [delete: cascade]
+
+// Profiles (1:1 with users; PK == FK)
+Ref: caregiver_profiles.user_id - users.id
+Ref: seeker_profiles.user_id - users.id
+
+// Trust
+Ref: credentials.caregiver_id > caregiver_profiles.user_id
+
+// Posts
+Ref: care_need_posts.seeker_id > seeker_profiles.user_id
+
+// Messaging
+Ref: threads.seeker_id > seeker_profiles.user_id
+Ref: threads.caregiver_id > caregiver_profiles.user_id
+Ref: threads.post_id > care_need_posts.id
+Ref: messages.thread_id > threads.id
+Ref: messages.sender_id > users.id
+
+// Billing
+Ref: subscriptions.user_id > users.id
+Ref: boosts.caregiver_id > caregiver_profiles.user_id
+
+// Reviews
+Ref: reviews.caregiver_id > caregiver_profiles.user_id
+Ref: reviews.seeker_id > seeker_profiles.user_id
+Ref: reviews.thread_id > threads.id
+
+// Organization (agencies) — a caregiver may belong to an org
+Ref: caregiver_profiles.organization_id > organization.id
+
+
+// =============================== TABLE GROUPS ================================
+
+TableGroup Identity {
+  users
+  sessions
+  accounts
+  verifications
+}
+
+TableGroup Profiles {
+  caregiver_profiles
+  seeker_profiles
+}
+
+TableGroup Trust {
+  credentials
+}
+
+TableGroup Posts {
+  care_need_posts
+}
+
+TableGroup Messaging {
+  threads
+  messages
+}
+
+TableGroup Billing {
+  subscriptions
+  boosts
+  reviews
+  organization
+}
+
+TableGroup Config {
+  app_config
+  app_config_audit
+}
+
+TableGroup Reference {
+  geo_smoke
+}

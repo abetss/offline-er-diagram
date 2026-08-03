@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ],
+      "type": "stdio"
+    },
+    "chrome-1": {
+      "command": "npx",
+      "args": [
+        "chrome-devtools-mcp@latest",
+        "--userDataDir=/tmp/chrome-1-admin-2"
+      ]
+    },
+    "chrome-2": {
+      "command": "npx",
+      "args": [
+        "chrome-devtools-mcp@latest",
+        "--userDataDir=/tmp/chrome-2-admin-2"
+      ]
+    }
+  }
+}

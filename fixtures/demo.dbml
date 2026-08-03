@@ -1,0 +1,48 @@
+Project upliv_demo {
+  database_type: 'PostgreSQL'
+}
+
+Table users {
+  id uuid [pk, note: 'UUIDv7']
+  email varchar(200) [not null, unique]
+  display_name text
+  created_at timestamptz [default: `now()`]
+
+  Note: 'All humans in the system.'
+}
+
+Table caregiver_profiles {
+  user_id uuid [pk, ref: - users.id]
+  organization_id uuid
+  bio text
+  hourly_rate numeric(10,2)
+  location geography(Point,4326)
+}
+
+Table organization {
+  id uuid [pk]
+  name text [not null]
+}
+
+Table subscriptions {
+  id uuid [pk]
+  user_id uuid [not null, note: 'FK -> users.id (the seeker)']
+  status text
+  current_period_end timestamptz
+}
+
+Table reviews {
+  id uuid [pk]
+  author_id uuid [not null, note: 'FK -> users.id']
+  caregiver_id uuid [not null]
+  rating int
+  body text [note: 'Free-text review body']
+}
+
+Ref: caregiver_profiles.organization_id > organization.id [note: 'employer']
+Ref: reviews.caregiver_id > caregiver_profiles.user_id
+
+TableGroup Billing {
+  subscriptions
+  reviews
+}

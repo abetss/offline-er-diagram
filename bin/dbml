@@ -1,0 +1,88 @@
+#!/bin/sh
+# dbml — unified CLI for the local DBML ER-diagram tool.
+# Self-locating: derives the repo root from this script's own location, so it
+# works from any working directory and via a relative or absolute path.
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$SCRIPT_DIR/.." && pwd)
+
+# Rust lives in a keg-only rustup that isn't on PATH — prepend it so any cargo
+# call inside this script works regardless of the caller's environment.
+export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$PATH"
+
+APP="$REPO/src-tauri/target/release/bundle/macos/DBML Diagrams.app/Contents/MacOS/dbml-diagrams"
+MERMAID_BIN="$REPO/parser-rs/target/release/mermaid"
+PARSE_BIN="$REPO/parser-rs/target/release/parse"
+
+usage() {
+  cat <<'EOF'
+dbml — local DBML ER-diagram tool CLI
+
+USAGE:
+  dbml <command> [file.dbml]
+
+COMMANDS:
+  open <file>      Open the desktop app, seeded with the given DBML schema
+                   (if the app is already running, opens the file in a new tab)
+  mermaid [file]   Print a Mermaid erDiagram for the schema (file or stdin)
+  json [file]      Print the parsed schema as canonical JSON (file or stdin)
+  build            Build the parser CLIs and the desktop .app
+  help             Show this help
+
+  mermaid/json accept a DBML file arg, or read DBML on stdin when given none.
+
+EXAMPLES:
+  dbml open schema.dbml
+  dbml mermaid schema.dbml > schema.mmd
+  cat schema.dbml | dbml mermaid
+  dbml json schema.dbml
+EOF
+}
+
+# Build the parser bins if either is missing OR a parser source file is newer
+# than the built binary (stale after an edit). Output goes to stderr so it never
+# pollutes stdout that a caller may be capturing.
+ensure_parser_bins() {
+  stale=""
+  if [ -x "$MERMAID_BIN" ]; then
+    stale=$(find "$REPO/parser-rs/src" "$REPO/parser-rs/Cargo.toml" -newer "$MERMAID_BIN" 2>/dev/null)
+  fi
+  if [ ! -x "$MERMAID_BIN" ] || [ ! -x "$PARSE_BIN" ] || [ -n "$stale" ]; then
+    echo "building parser bins..." >&2
+    cargo build --release --manifest-path "$REPO/parser-rs/Cargo.toml" --bins >&2 || exit $?
+  fi
+}
+
+cmd="${1:-}"
+[ "$#" -gt 0 ] && shift
+
+case "$cmd" in
+  open)
+    if [ ! -x "$APP" ]; then
+      echo "App not built. Run: dbml build" >&2
+      exit 1
+    fi
+    exec "$APP" "$@"
+    ;;
+  mermaid)
+    ensure_parser_bins
+    exec "$MERMAID_BIN" "$@"
+    ;;
+  json)
+    ensure_parser_bins
+    exec "$PARSE_BIN" "$@"
+    ;;
+  build)
+    cargo build --release --manifest-path "$REPO/parser-rs/Cargo.toml" --bins || exit $?
+    ( cd "$REPO" && npx tauri build --bundles app ) || exit $?
+    echo "Done: parser bins + .app built."
+    ;;
+  help|-h|--help|"")
+    usage
+    exit 0
+    ;;
+  *)
+    echo "unknown command: $cmd" >&2
+    usage >&2
+    exit 2
+    ;;
+esac

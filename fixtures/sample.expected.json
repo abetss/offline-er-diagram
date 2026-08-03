@@ -1,0 +1,36 @@
+{
+  "tables": [
+    {
+      "name": "subscriptions",
+      "note": "[DESIGNED] (F6+, DORMANT at launch) Seeker Stripe Billing subscription. Entitlement is a FUNCTION not a table: can_message(seeker) = !PAYWALL_ENABLED || has_active_subscription(seeker) — hence no entitlements table exists. Flag lives in app_config.",
+      "columns": [
+        { "name": "id", "type": "uuid", "pk": true, "notNull": true, "unique": false, "note": "UUIDv7", "isFk": false },
+        { "name": "user_id", "type": "uuid", "pk": false, "notNull": true, "unique": false, "note": "FK -> users.id (the seeker)", "isFk": true },
+        { "name": "stripe_subscription_id", "type": "text", "pk": false, "notNull": false, "unique": true, "note": null, "isFk": false },
+        { "name": "plan", "type": "text", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false },
+        { "name": "status", "type": "text", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false },
+        { "name": "current_period_end", "type": "timestamptz", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false },
+        { "name": "created_at", "type": "timestamptz", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false },
+        { "name": "updated_at", "type": "timestamptz", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false }
+      ]
+    },
+    {
+      "name": "boosts",
+      "note": "[DESIGNED] (dark seam, v1.1) Caregiver-paid featured placement. Adds one ranking term when active; table pre-wired, feature dark at MVP.",
+      "columns": [
+        { "name": "id", "type": "uuid", "pk": true, "notNull": true, "unique": false, "note": "UUIDv7", "isFk": false },
+        { "name": "caregiver_id", "type": "uuid", "pk": false, "notNull": true, "unique": false, "note": "FK -> caregiver_profiles.user_id", "isFk": true },
+        { "name": "starts_at", "type": "timestamptz", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false },
+        { "name": "ends_at", "type": "timestamptz", "pk": false, "notNull": false, "unique": false, "note": null, "isFk": false }
+      ]
+    }
+  ],
+  "refs": [
+    { "fromTable": "subscriptions", "fromColumn": "user_id", "toTable": "users", "toColumn": "id", "relation": ">", "note": "(the seeker)", "source": "from-note" },
+    { "fromTable": "boosts", "fromColumn": "caregiver_id", "toTable": "caregiver_profiles", "toColumn": "user_id", "relation": ">", "note": null, "source": "from-note" },
+    { "fromTable": "caregiver_profiles", "fromColumn": "organization_id", "toTable": "organization", "toColumn": "id", "relation": ">", "note": null, "source": "explicit" }
+  ],
+  "groups": [
+    { "name": "Billing", "tables": ["subscriptions", "boosts", "reviews", "organization"] }
+  ]
+}

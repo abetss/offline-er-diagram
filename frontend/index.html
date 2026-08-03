@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DBML Diagrams</title>
+  </head>
+  <body>
+    <div id="shell">
+      <div id="toolbar">
+        <button id="editor-toggle" title="Collapse editor">⟨</button>
+        <span class="title">DBML Diagrams</span>
+        <label><input type="checkbox" id="notes-toggle" /> Notes</label>
+        <label><input type="checkbox" id="comments-toggle" /> Comments</label>
+        <button id="fit-btn">Fit</button>
+        <button id="export-svg-btn">Export SVG</button>
+        <button id="export-png-btn">Export PNG</button>
+        <button id="export-mermaid-btn">Export Mermaid</button>
+      </div>
+      <div id="tabbar">
+        <div id="tabs"></div>
+        <button id="new-tab" title="New tab">+</button>
+      </div>
+      <div id="panes">
+        <textarea id="editor" spellcheck="false"></textarea>
+        <div id="divider"></div>
+        <div id="diagram"></div>
+      </div>
+      <div id="error-bar"></div>
+      <div id="toast"></div>
+    </div>
+    <script type="module" src="/src/app.ts"></script>
+  </body>
+</html>

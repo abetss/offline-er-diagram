@@ -1,0 +1,26 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:tauri": "VITE_ADAPTER=tauri vite --port 5173 --strictPort",
+    "build": "tsc && vite build",
+    "build:tauri": "VITE_ADAPTER=tauri tsc && VITE_ADAPTER=tauri vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "jsdom": "^29.1.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
+    "elkjs": "^0.12.0"
+  }
+}

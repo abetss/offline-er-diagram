@@ -1,0 +1,12 @@
+{
+  "name": "db-diagrams",
+  "private": true,
+  "version": "0.1.0",
+  "author": {
+    "name": "Abid Ghods",
+    "email": "abid.ghods@gmail.com"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
