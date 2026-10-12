@@ -4,6 +4,7 @@ import { createParser } from './parser';
 import { viewerHtml } from './html';
 import { viewerMessageSchema } from './protocol';
 import type { HostMessage } from './protocol';
+import { openSourceEditor } from './source-editor';
 
 const viewType = 'dbmlDiagrams.diagram';
 
@@ -74,7 +75,8 @@ export function activate(context: vscode.ExtensionContext): void {
               await update();
               break;
             case 'openSource':
-              await vscode.window.showTextDocument(document, { viewColumn: vscode.ViewColumn.Beside, preview: false });
+              panel.reveal(panel.viewColumn);
+              await openSourceEditor(document);
               break;
             case 'exportSvg': {
               const destination = await vscode.window.showSaveDialog({

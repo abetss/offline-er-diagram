@@ -2,7 +2,7 @@
   "name": "dbml-diagrams",
   "displayName": "DBML Diagrams",
   "description": "Open DBML files as interactive database diagrams with the DBML Diagrams Rust parser.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "Abidghods",
   "author": "Abid Ghods",
   "license": "UNLICENSED",
