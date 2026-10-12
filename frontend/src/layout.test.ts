@@ -95,6 +95,21 @@ describe('computeLayout produces non-overlapping cards', () => {
 });
 
 describe('computeLayout clusters groups into disjoint boxes', () => {
+  it('leaves room for relationships inside groups and keeps the existing vertical gaps', async () => {
+    const grouped: Schema = { ...demo, groups: [{ name: 'All tables', tables: demo.tables.map((table) => table.name) }] };
+    for (const comments of [false, true]) {
+      const res = await computeLayout(grouped, measure, undefined, comments);
+      const users = cardRect(res, 'users');
+      const caregiver = cardRect(res, 'caregiver_profiles');
+      const subscriptions = cardRect(res, 'subscriptions');
+      const reviews = cardRect(res, 'reviews');
+      expect(caregiver.x - (users.x + users.w)).toBeGreaterThanOrEqual(120 - 0.001);
+      expect(reviews.x - (caregiver.x + caregiver.w)).toBeGreaterThanOrEqual(120 - 0.001);
+      expect(subscriptions.y - (caregiver.y + caregiver.h)).toBeCloseTo(20);
+      noOverlaps(grouped, res);
+    }
+  });
+
   // The 8 group member-bounding-boxes must not overlap each other — ELK's nested compound nodes
   // put each group's members in a disjoint container, so the bboxes come out disjoint too.
   it('care_marketplace: no two group bounding boxes overlap', async () => {

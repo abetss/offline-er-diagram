@@ -16,9 +16,14 @@ import {
   cardWidthMax,
   commentGap,
   commentColMax,
+  gapX,
+  gapY,
 } from './theme';
 
 const elk = new ELK();
+const horizontalSpacing = {
+  'elk.layered.spacing.nodeNodeBetweenLayers': String(gapX),
+};
 
 export type MeasureFn = (text: string, font: string) => number;
 
@@ -205,7 +210,10 @@ export async function computeLayout(
     if (!container) {
       container = {
         id: 'grp:' + gi,
-        layoutOptions: { 'elk.padding': '[top=16,left=16,bottom=16,right=16]' },
+        layoutOptions: {
+          ...horizontalSpacing,
+          'elk.padding': '[top=16,left=16,bottom=16,right=16]',
+        },
         children: [],
       };
       containers.set(gi, container);
@@ -227,10 +235,10 @@ export async function computeLayout(
       'elk.algorithm': 'layered',
       'elk.direction': 'RIGHT',
       'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '120',
-      'elk.spacing.nodeNode': '40',
+      ...horizontalSpacing,
+      'elk.spacing.nodeNode': String(gapY),
       'elk.spacing.componentComponent': '60',
-      'elk.layered.spacing.baseValue': '40',
+      'elk.layered.spacing.baseValue': String(gapY),
       'elk.randomSeed': '1',
     },
     children: [...containers.values(), ...ungrouped],

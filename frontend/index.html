@@ -23,7 +23,10 @@
         <button id="new-tab" title="New tab">+</button>
       </div>
       <div id="panes">
-        <textarea id="editor" spellcheck="false"></textarea>
+        <div id="editor-pane">
+          <pre id="editor-highlight" aria-hidden="true"></pre>
+          <textarea id="editor" spellcheck="false" aria-label="DBML code"></textarea>
+        </div>
         <div id="divider"></div>
         <div id="diagram"></div>
       </div>

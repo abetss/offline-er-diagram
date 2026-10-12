@@ -14,6 +14,7 @@ import { createInteraction } from './interaction';
 import { selectAdapter } from './parse-adapter';
 import { folderTabTitle, readBrowserFolder } from './folder-files';
 import type { FolderFiles } from './folder-files';
+import { createDbmlHighlighter } from './dbml-highlight';
 
 async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T | null> {
   if (!('__TAURI_INTERNALS__' in window)) return null;
@@ -23,7 +24,18 @@ async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Prom
 
 const adapter = selectAdapter();
 
-const editor = document.getElementById('editor') as HTMLTextAreaElement;
+function getEditor(): HTMLTextAreaElement {
+  const element = document.getElementById('editor');
+  if (!(element instanceof HTMLTextAreaElement)) throw new Error('DBML editor is missing');
+  return element;
+}
+const editor = getEditor();
+const editorHighlight = document.getElementById('editor-highlight');
+if (!(editorHighlight instanceof HTMLElement)) throw new Error('DBML highlight layer is missing');
+const highlighter = createDbmlHighlighter(editor, editorHighlight);
+void highlighter.ready.catch((error: unknown) => {
+  showToast(`Could not load syntax highlighting: ${error instanceof Error ? error.message : String(error)}`);
+});
 const diagram = document.getElementById('diagram') as HTMLDivElement;
 const panes = document.getElementById('panes') as HTMLDivElement;
 const divider = document.getElementById('divider') as HTMLDivElement;
@@ -227,7 +239,7 @@ async function activate(id: string): Promise<void> {
   const tab = tabs.find((t) => t.id === id);
   if (!tab) return;
   activeId = id;
-  editor.value = tab.text;
+  highlighter.setText(tab.text);
   interaction.setPositions(activePins());
   fitNext = true; // re-fit the incoming tab's diagram
   renderTabBar();
@@ -774,14 +786,14 @@ const restored = restoreState();
 if (!restored) {
   const first = createTab('Demo', demoText);
   activeId = first.id;
-  editor.value = first.text;
+  highlighter.setText(first.text);
   interaction.setPositions(activePins());
   renderTabBar();
   saveState();
   void reparse();
 } else {
   const at = activeTab();
-  editor.value = at.text;
+  highlighter.setText(at.text);
   interaction.setPositions(activePins());
   renderTabBar();
   void reparse();
@@ -798,7 +810,7 @@ void (async () => {
     if (!restored && tabs.length === 1 && at.title === 'Demo') {
       at.title = title;
       at.text = cli.text;
-      editor.value = cli.text;
+      highlighter.setText(cli.text);
       fitNext = true;
       renderTabBar();
       await reparse();

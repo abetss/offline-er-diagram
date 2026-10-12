@@ -23,7 +23,7 @@ npm ci --prefix frontend
 cp -R "src-tauri/target/release/bundle/macos/DBML Diagrams.app" /Applications/
 ```
 
-Open **DBML Diagrams** from Applications. Paste DBML, open a file, or choose **Open Folder** to open every DBML file, including subfolders. Export SVG, PNG, or Mermaid.
+Open **DBML Diagrams** from Applications. Edit syntax-highlighted DBML, open a file, or choose **Open Folder** to open every DBML file, including subfolders. Export SVG, PNG, or Mermaid.
 
 ## CLI and agent skill
 

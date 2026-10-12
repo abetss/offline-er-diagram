@@ -68,25 +68,21 @@ Graph edge `child → parent`. Refs with a missing endpoint table produce no edg
 (dangling, grammar §8). Refs naming a missing **column** on a defined table are drawn, attaching at
 the header's vertical center instead of a row.
 
-## 5. Auto-layout (deterministic layered placement — no physics, no iteration)
+## 5. Auto-layout
 
-1. **Layer assignment** (parents left): `layer(t) = 0` if *t* has no outgoing edges, else
-   `1 + max(layer(parent))`. Memoized DFS; iterate tables in document order and each table's edges
-   in `refs` order; an edge that reaches a node already on the DFS stack is a cycle back-edge —
-   **ignore it for layering** (still drawn). Fully deterministic.
-2. **Within-layer order**: stable sort by `(groupRank, docIndex)` where `groupRank` = index in
-   `schema.groups` of the first group containing the table, or `groups.length` if ungrouped.
-   This clusters group members vertically so group boxes are compact.
-3. **X**: `layerX[0] = 0; layerX[i] = layerX[i-1] + maxWidth(layer i-1) + gapX`. Every table in
-   layer *i* gets `x = layerX[i]`.
-4. **Y**: stack per layer from `y = 0`: table at `y`, then `y += baseH + gapY`, plus an extra
-   `groupTransitionGap` whenever consecutive tables have different `groupRank` (keeps group boxes
-   from crowding neighbors).
-5. **Overrides**: any table present in `opts.positions` uses that position instead (layout still
-   computes the rest as if unpinned). Guarantee: with no overrides, no two cards overlap — grid
-   construction makes this structural; assert it in tests.
+ELK uses a deterministic layered layout with direction `RIGHT`, a fixed random seed, and
+compound nodes for table groups. Parent tables are edge sources and appear to the left of
+their children. Each table belongs to the first group listing it; ungrouped tables sit at the root.
+Group containers have 16px padding, and child coordinates are converted to absolute positions.
 
-Layout uses `baseH` (notes OFF) so toggling notes never moves cards — only heights change.
+Both the root and each group explicitly use `gapX=120` as the minimum spacing between layers.
+Group spacing does not inherit this root option automatically. Vertical spacing stays at 40px
+at the root and ELK's existing 20px default inside groups. Wider cards can increase horizontal
+gaps beyond the minimum. Comments mode recalculates layout using the widened card sizes.
+
+Layout uses `baseH`, which excludes notes, so toggling Notes never moves cards.
+User-dragged positions override computed positions after layout. With no overrides, tests check
+that cards and group bounding boxes do not overlap.
 
 ## 6. Coordinate model, zoom & pan
 

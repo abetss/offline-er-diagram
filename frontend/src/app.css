@@ -107,9 +107,21 @@ body {
   flex: 1 1 auto;
   min-height: 0;
 }
-#editor {
+#editor-pane {
   flex: 0 0 auto;
   width: var(--editor-width, 40%);
+  position: relative;
+  overflow: hidden;
+  background: #0f172a;
+  border-right: 1px solid #334155;
+}
+#editor,
+#editor-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  width: 100%;
   resize: none;
   border: none;
   outline: none;
@@ -117,9 +129,42 @@ body {
   font-family: 'SF Mono', Menlo, Consolas, monospace;
   font-size: 13px;
   line-height: 1.5;
-  background: #0f172a;
+  font-weight: 400;
+  font-variant-ligatures: none;
+  tab-size: 4;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
   color: #e2e8f0;
-  border-right: 1px solid #334155;
+}
+#editor {
+  height: 100%;
+  background: transparent;
+  caret-color: #e2e8f0;
+}
+#editor-highlight {
+  visibility: hidden;
+  pointer-events: none;
+}
+.syntax-ready #editor-highlight {
+  visibility: visible;
+}
+.syntax-ready #editor {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.syntax-ready #editor::selection {
+  background: rgb(96 165 250 / 30%);
+}
+.dbml-keyword { color: #c792ea; }
+.dbml-name { color: #82aaff; }
+.dbml-type { color: #ffcb6b; }
+.dbml-string { color: #c3e88d; }
+.dbml-comment { color: #82a99b; }
+.dbml-constant { color: #f78c6c; }
+@media (forced-colors: active) {
+  .syntax-ready #editor-highlight { visibility: hidden; }
+  .syntax-ready #editor { color: CanvasText; -webkit-text-fill-color: CanvasText; }
 }
 #divider {
   flex: 0 0 6px;
@@ -129,7 +174,7 @@ body {
 #divider:hover {
   background: #475569;
 }
-#panes.editor-collapsed #editor {
+#panes.editor-collapsed #editor-pane {
   width: 0 !important;
   padding: 0;
   border: none;
