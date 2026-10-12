@@ -1,5 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import appHtml from '../index.html?raw';
+import todoText from '../../fixtures/todo.dbml?raw';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
@@ -17,6 +18,10 @@ it('opens folder DBML files as independent tabs and leaves tabs intact for a fol
   await import('./app');
   await vi.waitFor(() => expect(document.querySelector('svg.erd')).not.toBeNull());
   await vi.waitFor(() => expect(document.getElementById('editor-pane')?.classList.contains('syntax-ready')).toBe(true));
+  expect(document.querySelector<HTMLTextAreaElement>('#editor')?.value).toBe(todoText);
+  expect(Array.from(document.querySelectorAll('svg.erd .table'))).toHaveLength(3);
+  expect(document.querySelector('svg.erd')?.textContent).toContain('todo_lists');
+  expect(document.querySelector('svg.erd')?.textContent).toContain('todos');
 
   const folderInput = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="file"]'))
     .find((input) => input.webkitdirectory);

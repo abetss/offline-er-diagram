@@ -1,0 +1,29 @@
+Project todo_app {
+  database_type: 'PostgreSQL'
+}
+
+Table users {
+  id int [pk, increment]
+  name varchar(100) [not null]
+  email varchar(255) [not null, unique]
+
+  Note: 'People who create todo lists.'
+}
+
+Table todo_lists {
+  id int [pk, increment]
+  user_id int [not null, ref: > users.id]
+  title varchar(200) [not null]
+
+  Note: 'Lists for organizing tasks.'
+}
+
+Table todos {
+  id int [pk, increment]
+  list_id int [not null, ref: > todo_lists.id]
+  title varchar(200) [not null]
+  completed boolean [not null, default: false, note: 'True when the task is done.']
+  due_at timestamp
+
+  Note: 'Tasks belonging to a todo list.'
+}

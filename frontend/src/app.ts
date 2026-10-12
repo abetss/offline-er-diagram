@@ -15,6 +15,7 @@ import { selectAdapter } from './parse-adapter';
 import { folderTabTitle, readBrowserFolder } from './folder-files';
 import type { FolderFiles } from './folder-files';
 import { createDbmlHighlighter } from './dbml-highlight';
+import demoText from '../../fixtures/todo.dbml?raw';
 
 async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T | null> {
   if (!('__TAURI_INTERNALS__' in window)) return null;
@@ -729,58 +730,6 @@ exportMermaidBtn.addEventListener('click', async () => {
 });
 
 // ---- Boot ----------------------------------------------------------------
-
-// Seed the first tab with the demo schema so first paint renders tables AND relationship splines
-// through the real parser (the fixture adapter ignores this text; the tauri adapter parses it).
-const demoText = `Project upliv_demo {
-  database_type: 'PostgreSQL'
-}
-
-Table users {
-  id uuid [pk, note: 'UUIDv7']
-  email varchar(200) [not null, unique]
-  display_name text
-  created_at timestamptz [default: \`now()\`]
-
-  Note: 'All humans in the system.'
-}
-
-Table caregiver_profiles {
-  user_id uuid [pk, ref: - users.id]
-  organization_id uuid
-  bio text
-  hourly_rate numeric(10,2)
-  location geography(Point,4326)
-}
-
-Table organization {
-  id uuid [pk]
-  name text [not null]
-}
-
-Table subscriptions {
-  id uuid [pk]
-  user_id uuid [not null, note: 'FK -> users.id (the seeker)']
-  status text
-  current_period_end timestamptz
-}
-
-Table reviews {
-  id uuid [pk]
-  author_id uuid [not null, note: 'FK -> users.id']
-  caregiver_id uuid [not null]
-  rating int
-  body text [note: 'Free-text review body']
-}
-
-Ref: caregiver_profiles.organization_id > organization.id [note: 'employer']
-Ref: reviews.caregiver_id > caregiver_profiles.user_id
-
-TableGroup Billing {
-  subscriptions
-  reviews
-}
-`;
 
 const restored = restoreState();
 if (!restored) {

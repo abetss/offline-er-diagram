@@ -6,11 +6,11 @@ import { render, canvasMeasure } from './render';
 import type { RenderHandle } from './render';
 import { computeLayout } from './layout';
 import { createInteraction } from './interaction';
-import demoJson from '../../fixtures/demo.expected.json';
+import todoSchema from '../../fixtures/todo.expected';
 import sampleJson from '../../fixtures/sample.expected.json';
 
 const fixtures: Record<string, Schema> = {
-  demo: demoJson as Schema,
+  todo: todoSchema,
   sample: sampleJson as Schema,
 };
 
@@ -30,18 +30,14 @@ const scrambles: Record<string, { x: number; y: number }>[] = [
   // pull children to the LEFT of parents → exit-left / enter-right routing
   {
     users: { x: 600, y: 0 },
-    organization: { x: 600, y: 260 },
-    subscriptions: { x: 0, y: 0 },
-    caregiver_profiles: { x: 0, y: 200 },
-    reviews: { x: 0, y: 460 },
+    todo_lists: { x: 300, y: 200 },
+    todos: { x: 0, y: 400 },
   },
   // stack everything in one column → x-overlap → both-right C curves
   {
     users: { x: 200, y: 0 },
-    organization: { x: 200, y: 200 },
-    subscriptions: { x: 200, y: 340 },
-    caregiver_profiles: { x: 200, y: 480 },
-    reviews: { x: 200, y: 700 },
+    todo_lists: { x: 200, y: 240 },
+    todos: { x: 200, y: 480 },
   },
 ];
 let scrambleIdx = 0;

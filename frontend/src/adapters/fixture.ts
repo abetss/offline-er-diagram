@@ -2,11 +2,9 @@
 // Always returns the demo schema; returns ok:false at line 1 if the text contains '!!'
 // (a cheap way to exercise the error-bar path without a real parser).
 
-import type { ParseResult, Schema } from '../contract';
+import type { ParseResult } from '../contract';
 import type { ParseAdapter } from '../parse-adapter';
-import demoJson from '../../../fixtures/demo.expected.json';
-
-const demoSchema = demoJson as Schema;
+import demoSchema from '../../../fixtures/todo.expected';
 
 export const fixtureAdapter: ParseAdapter = {
   async parse(text: string): Promise<ParseResult> {

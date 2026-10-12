@@ -1,6 +1,6 @@
 # DBML Diagrams
 
-View DBML as interactive database diagrams, offline.
+View DBML as interactive database diagrams.
 
 ## VS Code
 
@@ -30,9 +30,9 @@ Open **DBML Diagrams** from Applications. Edit syntax-highlighted DBML, open a f
 From the repo root (Rust required; the parser builds automatically on first use):
 
 ```sh
-./bin/dbml open fixtures/demo.dbml
-./bin/dbml mermaid fixtures/demo.dbml > schema.mmd
-./bin/dbml json fixtures/demo.dbml
+./bin/dbml open fixtures/todo.dbml
+./bin/dbml mermaid fixtures/todo.dbml > schema.mmd
+./bin/dbml json fixtures/todo.dbml
 ./bin/dbml help
 ```
 
