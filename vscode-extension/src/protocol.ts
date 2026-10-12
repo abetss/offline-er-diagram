@@ -42,6 +42,8 @@ export type HostMessage = z.infer<typeof hostMessageSchema>;
 
 export const viewerStateSchema = z.object({
   notes: z.boolean(),
+  comments: z.boolean().default(false),
   positions: z.record(z.string(), z.object({ x: z.number().finite(), y: z.number().finite() })),
+  commentPositions: z.record(z.string(), z.object({ x: z.number().finite(), y: z.number().finite() })).default({}),
 });
 export type ViewerState = z.infer<typeof viewerStateSchema>;

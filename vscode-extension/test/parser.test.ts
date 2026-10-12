@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { createParser } from '../src/parser';
-import { hostMessageSchema, viewerMessageSchema } from '../src/protocol';
+import { hostMessageSchema, viewerMessageSchema, viewerStateSchema } from '../src/protocol';
 
 const root = resolve(__dirname, '..');
 const parser = readFile(resolve(root, 'media/parser.wasm')).then(createParser);
@@ -50,4 +50,12 @@ test('message boundaries reject malformed results and unsupported commands', () 
   assert.equal(hostMessageSchema.safeParse({ kind: 'update', version: 1, result: { ok: true, schema: null, error: null } }).success, false);
   assert.equal(viewerMessageSchema.safeParse({ kind: 'execute', command: 'anything' }).success, false);
   assert.equal(viewerMessageSchema.safeParse({ kind: 'exportSvg', svg: 3 }).success, false);
+});
+
+test('restores existing saved layouts with Comments disabled by default', () => {
+  const positions = { users: { x: 20, y: 40 } };
+  assert.deepEqual(viewerStateSchema.parse({ notes: true, positions }), {
+    notes: true, comments: false, positions, commentPositions: {},
+  });
+  assert.equal(viewerStateSchema.safeParse({ notes: false, positions, comments: 'yes' }).success, false);
 });

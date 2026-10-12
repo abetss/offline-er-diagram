@@ -29,6 +29,7 @@ export function viewerHtml({ scriptUri, styleUri, cspSource, nonce }: {
     <button id="fit" type="button">Fit</button>
     <button id="reset" type="button">Reset layout</button>
     <label><input id="notes" type="checkbox"> Notes</label>
+    <label><input id="comments" type="checkbox"> Comments</label>
     <button id="export" type="button" disabled>Export SVG</button>
     <span id="status" role="status" aria-live="polite">Loading DBML…</span>
   </header>

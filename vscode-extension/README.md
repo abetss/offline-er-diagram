@@ -4,13 +4,13 @@ View DBML as interactive database diagrams, offline.
 
 ## VS Code
 
-Search **DBML Diagrams** by **Abidghods** in Extensions, or install `dbml-diagrams-0.1.1.vsix` from the repo root using **Extensions → … → Install from VSIX…**:
+Search **DBML Diagrams** by **Abidghods** in Extensions, or install `dbml-diagrams-0.1.2.vsix` from the repo root using **Extensions → … → Install from VSIX…**:
 
 ```sh
-code --install-extension dbml-diagrams-0.1.1.vsix
+code --install-extension dbml-diagrams-0.1.2.vsix
 ```
 
-Click a `.dbml` file to open its diagram. **Edit source** opens syntax-highlighted DBML beside it; the diagram follows unsaved edits. Drag tables, toggle **Notes**, or **Export SVG**.
+Click a `.dbml` file to open its diagram. **Edit source** opens syntax-highlighted DBML beside it; the diagram follows unsaved edits. Drag tables, toggle **Notes** or **Comments**, or **Export SVG**. **Comments** shows column notes beside their types.
 
 ## Install the app
 
