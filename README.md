@@ -100,6 +100,7 @@ db-diagrams/
 │       ├── interaction.ts  # pan / zoom / drag / fit
 │       └── *.test.ts       # vitest suites
 ├── fixtures/               # sample/demo/care_marketplace .dbml + *.expected.json goldens
+├── skills/                 # agent skill for the `dbml` CLI — copy into your skills folder
 ├── docs/                   # design docs (read these before changing the contract!)
 │   ├── data-contract.md    # ← the Schema JSON seam; the most important doc
 │   ├── dbml-grammar.md     # what DBML we support / reject
@@ -281,6 +282,19 @@ then drives the tool through `dbml`:
   it built, or catch a parse error (`{"ok":false,"error":{line,column,message}}`).
 
 No live-app API or IPC needed — it's a plain file round-trip an agent can script.
+
+### Agent skill
+
+`skills/dbml-db-schema/SKILL.md` tells an agent when and how to use this CLI (open a schema in the
+app vs. emit Mermaid for docs). Copy it into your agent's skills folder so agents make the best use of
+`dbml`:
+
+```sh
+cp -R skills/dbml-db-schema ~/.claude/skills/
+```
+
+If the repo lives somewhere other than `~/Ork/tools/db-diagrams`, update the `DBML=` path in the
+copied `SKILL.md` to point at this repo's `bin/dbml`.
 
 ---
 
