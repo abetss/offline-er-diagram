@@ -12,6 +12,8 @@ import type { RenderHandle } from './render';
 import { computeLayout } from './layout';
 import { createInteraction } from './interaction';
 import { selectAdapter } from './parse-adapter';
+import { folderTabTitle, readBrowserFolder } from './folder-files';
+import type { FolderFiles } from './folder-files';
 
 async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T | null> {
   if (!('__TAURI_INTERNALS__' in window)) return null;
@@ -30,6 +32,7 @@ const errorBar = document.getElementById('error-bar') as HTMLDivElement;
 const notesToggle = document.getElementById('notes-toggle') as HTMLInputElement;
 const commentsToggle = document.getElementById('comments-toggle') as HTMLInputElement;
 const fitBtn = document.getElementById('fit-btn') as HTMLButtonElement;
+const openFolderBtn = document.getElementById('open-folder-btn');
 const exportSvgBtn = document.getElementById('export-svg-btn') as HTMLButtonElement;
 const exportPngBtn = document.getElementById('export-png-btn') as HTMLButtonElement;
 const exportMermaidBtn = document.getElementById('export-mermaid-btn') as HTMLButtonElement;
@@ -217,7 +220,6 @@ function createTab(title: string, text: string): Tab {
     pins: { plain: {}, comments: {} },
   };
   tabs.push(tab);
-  saveState();
   return tab;
 }
 
@@ -351,16 +353,19 @@ function getRecentFiles(): RecentFile[] {
 }
 
 function addRecentFile(title: string, text: string, path?: string): void {
-  if (!text || !text.trim()) return;
-  const list = getRecentFiles();
-  const filtered = list.filter((item) => (path && item.path ? item.path !== path : item.title !== title));
-  filtered.unshift({
-    title,
-    text,
-    path,
-    timestamp: Date.now(),
-  });
-  const trimmed = filtered.slice(0, 50); // Keep max 50 recent files
+  addRecentFiles([{ title, text, path }]);
+}
+
+function addRecentFiles(files: Omit<RecentFile, 'timestamp'>[]): void {
+  let list = getRecentFiles();
+  for (const file of files) {
+    if (!file.text.trim()) continue;
+    list = list.filter((item) =>
+      file.path && item.path ? item.path !== file.path : item.title !== file.title
+    );
+    list.unshift({ ...file, timestamp: Date.now() });
+  }
+  const trimmed = list.slice(0, 50); // Keep max 50 recent files
   try {
     localStorage.setItem('dbml.recentFiles', JSON.stringify(trimmed));
   } catch {
@@ -447,6 +452,11 @@ async function updateNativeMenu(): Promise<void> {
           action: () => {
             fileInput.click();
           },
+        }),
+        await MenuItem.new({
+          text: 'Open Folder...',
+          accelerator: 'CmdOrCtrl+Shift+O',
+          action: () => void openFolder(),
         }),
         recentSubmenu,
         await PredefinedMenuItem.new({ item: 'Separator' }),
@@ -559,10 +569,65 @@ fileInput.addEventListener('change', async () => {
   fileInput.value = '';
 });
 
+const folderInput = document.createElement('input');
+folderInput.type = 'file';
+folderInput.multiple = true;
+folderInput.webkitdirectory = true;
+folderInput.style.display = 'none';
+document.body.appendChild(folderInput);
+
+async function openFolderTabs(folder: FolderFiles): Promise<void> {
+  const opened = folder.files.map((file) => {
+    const title = folderTabTitle(folder, file.path);
+    return { tab: createTab(title, file.text), title, ...file };
+  });
+  const first = opened[0];
+  if (first) {
+    addRecentFiles(opened.map(({ title, text, path }) => ({ title, text, path })));
+    await activate(first.tab.id);
+  }
+  const message = first
+    ? `Opened ${opened.length} DBML file${opened.length === 1 ? '' : 's'}.`
+    : 'No DBML files found in this folder.';
+  showToast(folder.errors.length
+    ? `${message} Could not read ${folder.errors.length} file${folder.errors.length === 1 ? '' : 's'} or folder${folder.errors.length === 1 ? '' : 's'}. ${folder.errors[0]}`
+    : message);
+}
+
+let openingFolder = false;
+async function openFolder(): Promise<void> {
+  if (openingFolder) return;
+  if (!('__TAURI_INTERNALS__' in window)) {
+    folderInput.click();
+    return;
+  }
+  openingFolder = true;
+  try {
+    const folder = await tauriInvoke<FolderFiles>('open_dbml_folder');
+    if (folder) await openFolderTabs(folder);
+  } catch (error) {
+    showToast(`Could not open folder: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    openingFolder = false;
+  }
+}
+
+folderInput.addEventListener('change', async () => {
+  const files = folderInput.files;
+  if (!files?.length) return;
+  try {
+    await openFolderTabs(await readBrowserFolder(files));
+  } finally {
+    folderInput.value = '';
+  }
+});
+openFolderBtn?.addEventListener('click', () => void openFolder());
+
 document.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'o') {
     e.preventDefault();
-    fileInput.click();
+    if (e.shiftKey) void openFolder();
+    else fileInput.click();
   }
 });
 
@@ -712,6 +777,7 @@ if (!restored) {
   editor.value = first.text;
   interaction.setPositions(activePins());
   renderTabBar();
+  saveState();
   void reparse();
 } else {
   const at = activeTab();

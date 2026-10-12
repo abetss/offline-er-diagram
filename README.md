@@ -269,6 +269,10 @@ Details:
   opening a second file while it's running forwards the path to the existing window, which opens it
   as a new tab (named after the file) rather than launching a second window. You can also add tabs
   in-app with the **+** button, or **Open** a file into a new tab.
+- **Open Folder** in the toolbar or **File → Open Folder...** (`Cmd+Shift+O`) opens every `.dbml`
+  file in the selected folder and its subfolders, one tab per file. Other file types are ignored;
+  `.DBML` also works. Tabs use relative paths so identically named files in different subfolders
+  are distinguishable. Existing tabs stay open, and unreadable files are reported while the rest open.
 - **`mermaid` / `json`** auto-build the (fast) parser bins on first use if missing — build output goes
   to stderr so it never pollutes captured stdout. `mermaid` exits 0 on success; on a parse error it
   prints `error (line L:C): message` to stderr and exits 1; unreadable file exits 2.

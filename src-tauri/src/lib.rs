@@ -38,6 +38,86 @@ fn cli_schema(state: tauri::State<CliSchema>) -> Option<CliFile> {
     state.0.clone()
 }
 
+#[derive(serde::Serialize)]
+struct FolderFiles {
+    path: String,
+    files: Vec<CliFile>,
+    errors: Vec<String>,
+}
+
+fn read_dbml_folder(root: &std::path::Path) -> Result<FolderFiles, String> {
+    let mut result = FolderFiles {
+        path: root.to_string_lossy().into_owned(),
+        files: Vec::new(),
+        errors: Vec::new(),
+    };
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(dir) = pending.pop() {
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(entries) => entries,
+            Err(error) => {
+                let message = format!("{}: {error}", dir.display());
+                if dir == root {
+                    return Err(message);
+                }
+                result.errors.push(message);
+                continue;
+            }
+        };
+        for entry in entries {
+            let entry = match entry {
+                Ok(entry) => entry,
+                Err(error) => {
+                    result.errors.push(format!("{}: {error}", dir.display()));
+                    continue;
+                }
+            };
+            let path = entry.path();
+            let kind = match entry.file_type() {
+                Ok(kind) => kind,
+                Err(error) => {
+                    result.errors.push(format!("{}: {error}", path.display()));
+                    continue;
+                }
+            };
+            if kind.is_dir() {
+                pending.push(path);
+            } else if kind.is_file()
+                && path
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("dbml"))
+            {
+                match std::fs::read_to_string(&path) {
+                    Ok(text) => result.files.push(CliFile {
+                        path: path.to_string_lossy().into_owned(),
+                        text,
+                    }),
+                    Err(error) => result.errors.push(format!("{}: {error}", path.display())),
+                }
+            }
+        }
+    }
+    result.files.sort_by(|a, b| a.path.cmp(&b.path));
+    result.errors.sort();
+    Ok(result)
+}
+
+#[tauri::command]
+async fn open_dbml_folder() -> Result<Option<FolderFiles>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let Some(path) = rfd::FileDialog::new()
+            .set_title("Open folder of DBML files")
+            .pick_folder()
+        else {
+            return Ok(None);
+        };
+        read_dbml_folder(&path).map(Some)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
 fn save_export_to(
     dir: &std::path::Path,
     name: &str,
@@ -101,6 +181,7 @@ pub fn run() {
             parse_dbml,
             to_mermaid,
             cli_schema,
+            open_dbml_folder,
             save_export
         ])
         .run(tauri::generate_context!())
@@ -109,7 +190,72 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_dbml, read_cli_file, save_export_to};
+    use super::{parse_dbml, read_cli_file, read_dbml_folder, save_export_to};
+
+    fn folder_test_path(name: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!("dbml_folder_{name}_{}", std::process::id()))
+    }
+
+    #[test]
+    fn read_folder_opens_only_dbml_files_including_subfolders() {
+        let dir = folder_test_path("mixed");
+        let nested = dir.join("nested");
+        std::fs::create_dir_all(&nested).unwrap();
+        std::fs::write(dir.join("schema.dbml"), "Table top {\n id int\n}").unwrap();
+        std::fs::write(nested.join("schema.DBML"), "Table child {\n id int\n}").unwrap();
+        std::fs::write(dir.join("empty.dbml"), "").unwrap();
+        std::fs::write(dir.join("notes.txt"), "not DBML").unwrap();
+        std::fs::write(dir.join("schema.dbml.bak"), "backup").unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&dir, nested.join("loop")).unwrap();
+
+        let result = read_dbml_folder(&dir).unwrap();
+        let paths: Vec<_> = result
+            .files
+            .iter()
+            .map(|file| std::path::Path::new(&file.path).strip_prefix(&dir).unwrap())
+            .collect();
+        assert_eq!(
+            paths,
+            [
+                std::path::Path::new("empty.dbml"),
+                std::path::Path::new("nested/schema.DBML"),
+                std::path::Path::new("schema.dbml"),
+            ]
+        );
+        assert_eq!(result.files[0].text, "");
+        assert_eq!(result.files[1].text, "Table child {\n id int\n}");
+        assert_eq!(result.files[2].text, "Table top {\n id int\n}");
+        assert!(result.errors.is_empty());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn read_folder_keeps_readable_files_when_another_file_fails() {
+        let dir = folder_test_path("unreadable");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("good.dbml"), "Table t {\n id int\n}").unwrap();
+        std::fs::write(dir.join("bad.dbml"), [0xff, 0xfe]).unwrap();
+
+        let result = read_dbml_folder(&dir).unwrap();
+        assert_eq!(result.files.len(), 1);
+        assert!(result.files[0].path.ends_with("good.dbml"));
+        assert_eq!(result.errors.len(), 1);
+        assert!(result.errors[0].contains("bad.dbml"));
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn read_folder_handles_empty_and_missing_folders() {
+        let dir = folder_test_path("empty");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("notes.txt"), "notes").unwrap();
+        let result = read_dbml_folder(&dir).unwrap();
+        assert!(result.files.is_empty());
+        assert!(result.errors.is_empty());
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert!(read_dbml_folder(&dir).is_err());
+    }
 
     #[test]
     fn parse_dbml_command_returns_one_table() {
@@ -145,7 +291,10 @@ mod tests {
         assert_eq!(got_flag.text, content);
 
         // A missing file path yields None.
-        let missing = dir.join("does_not_exist.dbml").to_string_lossy().into_owned();
+        let missing = dir
+            .join("does_not_exist.dbml")
+            .to_string_lossy()
+            .into_owned();
         let got_missing = read_cli_file(vec!["prog".to_string(), missing]);
         assert!(got_missing.is_none(), "missing file must yield None");
 
@@ -163,7 +312,10 @@ mod tests {
         let written = std::fs::read_to_string(&path).expect("read svg back");
         assert_eq!(written, svg);
         // Non-alphanumeric chars are sanitized to underscores.
-        assert_eq!(path.file_name().unwrap().to_string_lossy(), "my_diagram.svg");
+        assert_eq!(
+            path.file_name().unwrap().to_string_lossy(),
+            "my_diagram.svg"
+        );
 
         // mmd is written as UTF-8 text (round-trips including non-ASCII).
         let mmd = "erDiagram\n    users {\n        text café\n    }\n";
