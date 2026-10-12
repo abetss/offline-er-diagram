@@ -1,0 +1,41 @@
+{
+  "tool": "built-in image_gen",
+  "options": [
+    {
+      "option": 1,
+      "name": "Schema map",
+      "filename": "option-01-schema-map.png",
+      "prompt": "Use case: logo-brand. Create one polished, original square icon concept for a developer extension named DBML Diagrams, an offline tool that turns database schema code into interactive entity-relationship diagrams. This is an icon design exploration, not a screenshot. Center a bold, simple symbol with balanced negative space. Make the design legible at 32x32 and attractive at large size. Square 1:1 canvas, opaque background, crisp geometry, strong silhouette. No written words, no slogans, no labels, no watermark, no brand logos, no fake UI, no borders outside the icon. Produce exactly one icon, not a grid, collage, or presentation board. A precise flat geometric mark: three compact database table cards connected by thick right-angle relationship lines, one central card with two satellite cards. Indigo background, clean white card bodies with small electric-blue header accents. Each card has only two thick short horizontal row marks, avoiding tiny detail. Restrained, confident developer-tool identity."
+    },
+    {
+      "option": 2,
+      "name": "Database orbit",
+      "filename": "option-02-database-orbit.png",
+      "prompt": "Use case: logo-brand. Create one polished, original square icon concept for a developer extension named DBML Diagrams, an offline tool that turns database schema code into interactive entity-relationship diagrams. This is an icon design exploration, not a screenshot. Center a bold, simple symbol with balanced negative space. Make the design legible at 32x32 and attractive at large size. Square 1:1 canvas, opaque background, crisp geometry, strong silhouette. No written words, no slogans, no labels, no watermark, no brand logos, no fake UI, no borders outside the icon. Produce exactly one icon, not a grid, collage, or presentation board. A premium soft 3D database symbol: a simple violet stacked database cylinder with two broad rings, wrapped by one clean curved relationship path that connects two compact nodes. Deep indigo background with subtle controlled lighting, luminous lavender cylinder and a restrained cyan accent. Rounded matte surfaces, minimal geometry, dimensional but readable."
+    },
+    {
+      "option": 3,
+      "name": "Code to diagram",
+      "filename": "option-03-code-to-diagram.png",
+      "prompt": "Use case: logo-brand. Create one polished, original square icon concept for a developer extension named DBML Diagrams, an offline tool that turns database schema code into interactive entity-relationship diagrams. This is an icon design exploration, not a screenshot. Center a bold, simple symbol with balanced negative space. Make the design legible at 32x32 and attractive at large size. Square 1:1 canvas, opaque background, crisp geometry, strong silhouette. No written words, no slogans, no labels, no watermark, no brand logos, no fake UI, no borders outside the icon. Produce exactly one icon, not a grid, collage, or presentation board. A bold flat monoline emblem where a pair of oversized white code braces encloses two linked small rectangular table cards. Dark charcoal background with bright mint-green relational connectors. The braces and nodes form a coherent compact symbol. Precise rounded line caps, generous spacing, no tiny row details. Modern and understated."
+    },
+    {
+      "option": 4,
+      "name": "Connected cards",
+      "filename": "option-04-connected-cards.png",
+      "prompt": "Use case: logo-brand. Create one polished, original square icon concept for a developer extension named DBML Diagrams, an offline tool that turns database schema code into interactive entity-relationship diagrams. This is an icon design exploration, not a screenshot. Center a bold, simple symbol with balanced negative space. Make the design legible at 32x32 and attractive at large size. Square 1:1 canvas, opaque background, crisp geometry, strong silhouette. No written words, no slogans, no labels, no watermark, no brand logos, no fake UI, no borders outside the icon. Produce exactly one icon, not a grid, collage, or presentation board. A friendly minimalist app icon with three simple cream-colored table cards, their thick header strips in terracotta, muted purple, and deep teal, linked by bold dark ink connector paths. Warm off-white square background. Flat editorial geometry with softly rounded cards. The symbol fills the central area with generous margins. Clean, welcoming, and unusually distinctive among developer tools."
+    },
+    {
+      "option": 5,
+      "name": "Diagram D",
+      "filename": "option-05-diagram-d.png",
+      "prompt": "Use case: logo-brand. Create one polished, original square icon concept for a developer extension named DBML Diagrams, an offline tool that turns database schema code into interactive entity-relationship diagrams. This is an icon design exploration, not a screenshot. Center a bold, simple symbol with balanced negative space. Make the design legible at 32x32 and attractive at large size. Square 1:1 canvas, opaque background, crisp geometry, strong silhouette. No written words, no slogans, no labels, no watermark, no brand logos, no fake UI, no borders outside the icon. Produce exactly one icon, not a grid, collage, or presentation board. A striking abstract monogram: a capital-D-shaped silhouette constructed from a thick curved indigo ribbon, a straight cyan stem, and two clear square table-node cutouts connected at the middle. Warm white background, flat vector-like geometry, very few shapes, deliberate negative space. A memorable standalone developer-product logo. Only the abstract D form, no additional lettering."
+    },
+    {
+      "option": 6,
+      "name": "Isometric tables",
+      "filename": "option-06-isometric-tables.png",
+      "prompt": "Use case: logo-brand. Create one polished, original square icon concept for a developer extension named DBML Diagrams, an offline tool that turns database schema code into interactive entity-relationship diagrams. This is an icon design exploration, not a screenshot. Center a bold, simple symbol with balanced negative space. Make the design legible at 32x32 and attractive at large size. Square 1:1 canvas, opaque background, crisp geometry, strong silhouette. No written words, no slogans, no labels, no watermark, no brand logos, no fake UI, no borders outside the icon. Produce exactly one icon, not a grid, collage, or presentation board. A polished isometric icon: three compact raised database table tiles on a dark midnight-indigo background, connected by broad cyan pathways. A violet tile, a blue tile, and a turquoise tile, each with one clear header and two broad inset row marks. Subtle bevels, restrained soft shadow and no fine circuitry. Dynamic diagonal composition, simple enough for a Marketplace icon."
+    }
+  ]
+}
