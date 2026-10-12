@@ -24,6 +24,9 @@ export async function run(): Promise<void> {
   // A diagnostic proves the webview loaded its script, sent ready, and ran the bundled parser.
   await waitFor(() => vscode.languages.getDiagnostics(uri).some((item) => item.source === 'DBML'));
   const document = await vscode.workspace.openTextDocument(uri);
+  assert.equal(document.languageId, 'dbml', 'DBML source must select its contributed language');
+  const sourceEditor = await vscode.window.showTextDocument(document, { viewColumn: vscode.ViewColumn.Beside, preview: false });
+  assert.equal(sourceEditor.document.languageId, 'dbml');
   const originalText = document.getText();
   const edit = new vscode.WorkspaceEdit();
   edit.replace(uri, new vscode.Range(document.positionAt(0), document.positionAt(originalText.length)), 'Table users {\n id int [pk]\n}\n');
@@ -33,11 +36,12 @@ export async function run(): Promise<void> {
   const secondUri = vscode.Uri.joinPath(folder.uri, 'second.DBML');
   await vscode.workspace.fs.writeFile(secondUri, new TextEncoder().encode('Table teams {\n id int\n}'));
   await vscode.commands.executeCommand('dbmlDiagrams.openDiagram', secondUri);
+  assert.equal((await vscode.workspace.openTextDocument(secondUri)).languageId, 'dbml');
   await waitFor(() => vscode.window.tabGroups.all.some((group) => group.tabs.some((tab) =>
     tab.input instanceof vscode.TabInputCustom && tab.input.uri.toString() === secondUri.toString(),
   )));
   assert.equal(document.getText(), 'Table users {\n id int [pk]\n}\n');
   await document.save();
   await vscode.commands.executeCommand('workbench.action.closeAllEditors');
-  process.stdout.write('VS Code integration passed: default file opening, live unsaved updates, error recovery, multiple DBML tabs.\n');
+  process.stdout.write('VS Code integration passed: default file opening, DBML source language, live unsaved updates, error recovery, multiple DBML tabs.\n');
 }

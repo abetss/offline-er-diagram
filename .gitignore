@@ -48,7 +48,7 @@ Thumbs.db
 !.vscode/launch.json
 !.vscode/tasks.json
 *.vsix
-!/dbml-diagrams-0.1.0.vsix
+!/dbml-diagrams-*.vsix
 vscode-extension/media/parser.wasm
 vscode-extension/media/viewer/
 *.swp
