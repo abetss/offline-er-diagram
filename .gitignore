@@ -45,6 +45,12 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.vsix
+!/dbml-diagrams-0.1.0.vsix
+vscode-extension/media/parser.wasm
+vscode-extension/media/viewer/
 *.swp
 *.swo
 *~

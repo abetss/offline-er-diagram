@@ -10,6 +10,17 @@ parser is pure Rust and also usable headless from the CLI.
 > [Gotchas](#gotchas).
 
 ![alt text](demo.png)
+
+## VS Code extension
+
+Install [dbml-diagrams-0.1.0.vsix](dbml-diagrams-0.1.0.vsix) via **Extensions → … → Install from VSIX…**, or run from this folder:
+
+```sh
+code --install-extension dbml-diagrams-0.1.0.vsix
+```
+
+Click a `.dbml` file to view its diagram.
+
 ---
 
 ## TL;DR — the commands you'll actually use

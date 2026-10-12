@@ -8,6 +8,7 @@
     "dev:tauri": "VITE_ADAPTER=tauri vite --port 5173 --strictPort",
     "build": "tsc && vite build",
     "build:tauri": "VITE_ADAPTER=tauri tsc && VITE_ADAPTER=tauri vite build",
+    "build:vscode": "tsc -p tsconfig.vscode.json && vite build --config vite.vscode.config.ts",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

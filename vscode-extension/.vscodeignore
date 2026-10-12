@@ -1,0 +1,11 @@
+src/**
+test/**
+scripts/**
+parser-wasm/**
+node_modules/**
+tsconfig.json
+package-lock.json
+*.vsix
+.vscode/**
+dist/integration.cjs
+media/viewer/*.map

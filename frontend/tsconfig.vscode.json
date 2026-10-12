@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/vscode.ts", "vite.vscode.config.ts", "env.d.ts"],
+  "exclude": []
+}

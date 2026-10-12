@@ -1,0 +1,17 @@
+[package]
+name = "dbml_parser_wasm"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+parser_rs = { path = "../../parser-rs" }
+serde_json = "1"
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = true

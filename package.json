@@ -2,6 +2,10 @@
   "name": "db-diagrams",
   "private": true,
   "version": "0.1.0",
+  "scripts": {
+    "extension:build": "npm --prefix vscode-extension run build",
+    "extension:package": "npm --prefix vscode-extension run package"
+  },
   "author": {
     "name": "Abid Ghods",
     "email": "abid.ghods@gmail.com"
